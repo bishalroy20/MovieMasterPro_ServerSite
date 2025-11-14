@@ -88,15 +88,45 @@ app.post('/movies/add', async (req, res) => {
 
 
 // ✅ Get all movies
+// app.get('/movies', async (req, res) => {
+//   try {
+//     const movies = await db.collection('movies').find({}).toArray();
+//     res.status(200).json(movies);
+//   } catch (err) {
+//     console.error('Fetch error (/movies):', err);
+//     res.status(500).json({ message: 'Failed to fetch movies' });
+//   }
+// });
+
+// ✅ Get movies with optional filters (regex for genres)
 app.get('/movies', async (req, res) => {
   try {
-    const movies = await db.collection('movies').find({}).toArray();
+    const { genres, minRating, maxRating } = req.query;
+    const filter = {};
+
+    // Genre filter using regex
+    if (genres) {
+      const genreArray = genres.split(',').map(g => g.trim());
+      filter.$or = genreArray.map(g => ({
+        genre: { $regex: new RegExp(g, 'i') } // case-insensitive match
+      }));
+    }
+
+    // Rating filter using $gte and $lte
+    if (minRating || maxRating) {
+      filter.rating = {};
+      if (minRating) filter.rating.$gte = parseFloat(minRating);
+      if (maxRating) filter.rating.$lte = parseFloat(maxRating);
+    }
+
+    const movies = await db.collection('movies').find(filter).toArray();
     res.status(200).json(movies);
   } catch (err) {
     console.error('Fetch error (/movies):', err);
     res.status(500).json({ message: 'Failed to fetch movies' });
   }
 });
+
 
 
 
