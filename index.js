@@ -87,16 +87,7 @@ app.post('/movies/add', async (req, res) => {
 });
 
 
-// ✅ Get all movies
-// app.get('/movies', async (req, res) => {
-//   try {
-//     const movies = await db.collection('movies').find({}).toArray();
-//     res.status(200).json(movies);
-//   } catch (err) {
-//     console.error('Fetch error (/movies):', err);
-//     res.status(500).json({ message: 'Failed to fetch movies' });
-//   }
-// });
+
 
 // ✅ Get movies with optional filters (regex for genres)
 app.get('/movies', async (req, res) => {
