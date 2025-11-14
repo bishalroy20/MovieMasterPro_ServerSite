@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
-// ✅ Replace with your actual MongoDB connection string
+
 const uri = "mongodb+srv://bishalbondhon20_db_user:2UQeJeRTZXLJvBfn@cluster0.bd8m97l.mongodb.net/?appName=Cluster0";
 
 const client = new MongoClient(uri, {
@@ -100,22 +100,23 @@ app.get('/movies', async (req, res) => {
 
 
 
-// ✅ Get top-rated movies
-app.get('/toprated', async (req, res) => {
+ // ✅ Get top-rated movies
+app.get("/movies/top-rated", async (req, res) => {
   try {
     const movies = await db
-      .collection('movies')
-      .find({})
-      .sort({ rating: -1 })
+      .collection("movies")
+      .find({ rating: { $exists: true } })  // only movies with rating
+      .sort({ rating: -1 })                 // highest rating first
       .limit(5)
       .toArray();
 
     res.json(movies);
   } catch (err) {
-    console.error('Fetch error:', err);
-    res.status(500).json({ message: 'Failed to fetch top-rated movies' });
+    console.error("Failed to fetch top rated movies:", err);
+    res.status(500).json({ message: "Failed to fetch top rated movies" });
   }
 });
+
 
 
 // ✅ Get movies added by a specific user
@@ -164,7 +165,7 @@ app.get("/movies/:id", async (req, res) => {
   }
 });
 
-// const { ObjectId } = require("mongodb");
+
 
 app.put("/movies/update/:id", async (req, res) => {
   const { id } = req.params;
@@ -189,5 +190,23 @@ app.put("/movies/update/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to update movie" });
   }
 });
+
+
+// featured movies in hero section
+app.get("/featured-movies", async (req, res) => {
+  try {
+    const movies = await db.collection("featuredMovies").find().toArray();
+    res.json(movies);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch featured movies" });
+  }
+});
+
+
+// top rated movies
+
+
+
 
 
