@@ -272,57 +272,83 @@ app.get("/stats/users", async (req, res) => {
 
 
 
-// ADD WATCHLIST
+
+// Watchlist codes
+function watchlistCollection() {
+  return client.db("moviemasterpro").collection("watchlists");
+}
+
+
 app.post("/watchlist/add", async (req, res) => {
   try {
     const { email, movieId, movie } = req.body;
+    if (!email || !movieId || !movie) {
+      return res.status(400).json({ message: "email, movieId and movie are required" });
+    }
 
-    // Check duplicate
-    const exists = await Watchlist.findOne({ email, movieId });
-    if (exists) return res.status(400).json({ message: "Already in watchlist" });
+    const col = watchlistCollection();
 
-    const added = await Watchlist.create({ email, movieId, movie });
+    const exists = await col.findOne({ email, movieId });
+    if (exists) {
+      return res.status(400).json({ message: "Already in watchlist" });
+    }
 
-    res.json(added);
+    const doc = { email, movieId, movie, createdAt: new Date() };
+    const result = await col.insertOne(doc);
+
+    res.status(201).json({ ...doc, _id: result.insertedId });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("watchlist add error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET WATCHLIST FOR USER
+
 app.get("/watchlist", async (req, res) => {
   try {
     const email = req.query.email;
+    if (!email) return res.status(400).json({ message: "email query param required" });
 
-    const list = await Watchlist.find({ email });
+    const col = watchlistCollection();
+    const list = await col.find({ email }).sort({ createdAt: -1 }).toArray();
 
     res.json(list);
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("watchlist get error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// CHECK IF MOVIE ALREADY ADDED
+
 app.get("/watchlist/check", async (req, res) => {
   try {
     const { email, movieId } = req.query;
+    if (!email || !movieId) return res.status(400).json({ message: "email and movieId required" });
 
-    const exists = await Watchlist.findOne({ email, movieId });
+    const col = watchlistCollection();
+    const item = await col.findOne({ email, movieId });
 
-    res.json({ exists: Boolean(exists) });
+    res.json({ exists: !!item, item: item || null });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("watchlist check error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// REMOVE FROM WATCHLIST
+
 app.delete("/watchlist/remove/:id", async (req, res) => {
   try {
-    await Watchlist.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid id" });
+
+    const col = watchlistCollection();
+    const result = await col.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) return res.status(404).json({ message: "Not found" });
 
     res.json({ message: "Removed from watchlist" });
   } catch (err) {
-    res.status(500).json({ error: "Delete failed" });
+    console.error("watchlist remove error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
-
